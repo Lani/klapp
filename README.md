@@ -1,34 +1,67 @@
-## Usage
+# KLAPP - Visual App Builder for SolidJS
 
-Those templates dependencies are maintained via [pnpm](https://pnpm.io) via `pnpm up -Lri`.
+> **DISCLAIMER 1**: All code in this repository was written by GitHub Copilot Agent Mode powered by Claude 3.7 Sonnet.
 
-This is the reason you see a `pnpm-lock.yaml`. That being said, any package manager will work. This file can be safely be removed once you clone a template.
+> **DISCLAIMER 2**: This project is a work in progress and is not yet fully functional. It is intended for educational purposes for evaluating the capabilities of AI in code generation and manipulation. The project is not intended for production use and contain bugs and incomplete features.
+
+> **DISCLAIMER 3**: The generated code is crap when compared to the code written by a human. 
+
+## Overview
+
+KLAPP is a low-code visual application builder for SolidJS that enables developers to create web applications through a combination of drag-and-drop visual editing and code editing. The application features a three-panel interface that synchronizes in real-time:
+
+1. **Visual Designer** - Drag components onto a canvas to visually build your UI
+2. **Code Editor** - Edit the generated SolidJS code directly using Monaco Editor
+3. **Property Panel** - Modify component properties through a user-friendly interface
+
+## Key Features
+
+- **Bi-directional Synchronization**: Changes made in any panel (designer, code, properties) are immediately reflected in the others
+- **Component Library**: Drag and drop UI components like buttons from the toolbox
+- **Screen Management**: Create and manage multiple screens in your application
+- **Advanced Code Editing**: Full-featured Monaco Editor with syntax highlighting and IntelliSense
+- **AST-based Code Generation**: Uses Abstract Syntax Trees for precise code manipulation and formatting
+
+## Technical Details
+
+KLAPP is built using:
+
+- **SolidJS**: Fast, reactive UI framework
+- **Monaco Editor**: VS Code's editor component for code editing
+- **Recast/Babel**: For AST-based code manipulation
+- **Solid-DND**: Drag and drop functionality
+- **TypeScript**: Type safety throughout the application
+
+## How It Works
+
+1. **Component Management**: Components are represented internally as objects with properties
+2. **AST Manipulation**: Code changes use Abstract Syntax Tree manipulation to ensure proper formatting
+3. **Change Source Tracking**: Prevents feedback loops by tracking where changes originate
+4. **Reactive Data Flow**: SolidJS's reactive system keeps all views synchronized
+
+## Getting Started
 
 ```bash
-$ npm install # or pnpm install or yarn install
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-### Learn more on the [Solid Website](https://solidjs.com) and come chat with us on our [Discord](https://discord.com/invite/solidjs)
+## Project Structure
 
-## Available Scripts
+- `src/components/` - UI components for the builder interface
+- `src/utils/` - Utility functions including AST manipulation
+- `src/App.tsx` - Main application component and state management
 
-In the project directory, you can run:
+## Usage
 
-### `npm run dev` or `npm start`
+1. **Add Components**: Drag components from the toolbox to the designer
+2. **Edit Properties**: Select a component and modify its properties in the panel
+3. **Code Editing**: Switch to code view to directly edit the generated SolidJS code
+4. **Create Screens**: Add multiple screens to build multi-page applications
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## License
 
-The page will reload if you make edits.<br>
-
-### `npm run build`
-
-Builds the app for production to the `dist` folder.<br>
-It correctly bundles Solid in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
-
-## Deployment
-
-You can deploy the `dist` folder to any static host provider (netlify, surge, now, etc.)
+[MIT License](LICENSE)
