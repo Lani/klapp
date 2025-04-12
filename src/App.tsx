@@ -9,6 +9,7 @@ import {
   closestCenter 
 } from '@thisbeyond/solid-dnd';
 import styles from './App.module.css';
+import * as recast from 'recast';
 
 // Component imports
 import { ToolboxPanel } from './components/ToolboxPanel';
@@ -18,6 +19,70 @@ import { ScreensPanel } from './components/ScreensPanel';
 
 // Parser utilities for AST manipulation
 import { parseComponent, updateComponentAST } from './utils/astUtils';
+
+// Helper function to create JSX attributes for the AST
+function createJSXAttribute(name: string, value: any): any {
+  // Skip children property as it should be rendered as content
+  if (name === 'children') {
+    return null;
+  }
+
+  // Simple string attribute
+  if (typeof value === 'string') {
+    // For onClick or other event handlers, use JSX expression container
+    if (name.startsWith('on') && (value.includes('=>') || value.includes('function'))) {
+      return recast.types.builders.jsxAttribute(
+        recast.types.builders.jsxIdentifier(name),
+        recast.types.builders.jsxExpressionContainer(
+          recast.parse(value).program.body[0].expression
+        )
+      );
+    }
+    return recast.types.builders.jsxAttribute(
+      recast.types.builders.jsxIdentifier(name),
+      recast.types.builders.stringLiteral(value)
+    );
+  }
+  
+  // Boolean attribute
+  if (typeof value === 'boolean') {
+    if (value) {
+      return recast.types.builders.jsxAttribute(
+        recast.types.builders.jsxIdentifier(name),
+        null
+      );
+    }
+    // For explicit false values, use {false}
+    const jsxValue = recast.types.builders.jsxExpressionContainer(
+      recast.types.builders.booleanLiteral(false)
+    );
+    return recast.types.builders.jsxAttribute(
+      recast.types.builders.jsxIdentifier(name),
+      jsxValue
+    );
+  }
+
+  // Number attribute
+  if (typeof value === 'number') {
+    const jsxValue = recast.types.builders.jsxExpressionContainer(
+      recast.types.builders.numericLiteral(value)
+    );
+    return recast.types.builders.jsxAttribute(
+      recast.types.builders.jsxIdentifier(name),
+      jsxValue
+    );
+  }
+
+  // Object/array attribute
+  const jsxValue = recast.types.builders.jsxExpressionContainer(
+    recast.parse('(' + JSON.stringify(value) + ')').program.body[0].expression
+  );
+  
+  return recast.types.builders.jsxAttribute(
+    recast.types.builders.jsxIdentifier(name),
+    jsxValue
+  );
+}
 
 const App: Component = () => {
   const [screens, setScreens] = createStore<{ id: string; name: string; content: string }[]>([
@@ -29,7 +94,6 @@ const App: Component = () => {
 export default function Home() {
   return (
     <div>
-      <h1>Home Screen</h1>
     </div>
   );
 }`
@@ -101,6 +165,15 @@ export default function ${name}() {
       );
     }
   };
+
+  // Function to update screen content when edited in the code editor
+  const updateScreenContent = (screenId: string, newContent: string) => {
+    setScreens(
+      screens.map((s: {id: string, name: string, content: string}) => 
+        s.id === screenId ? { ...s, content: newContent } : s
+      )
+    );
+  };
   
   const handleDragStart = (event: any) => {
     // If dragging from toolbox, get the data from the draggable
@@ -115,7 +188,75 @@ export default function ${name}() {
       // Handle drop into canvas
       if (droppable.id === 'canvas' && draggingItem() && designerAPI.addComponent) {
         // Add the component to the canvas using the DesignerPanel's addComponent method
-        designerAPI.addComponent(draggingItem());
+        const newComponent = designerAPI.addComponent(draggingItem());
+        
+        // Update the screen's code to include the new component
+        const activeScreenData = screens.find((s: {id: string}) => s.id === activeScreen());
+        if (activeScreenData && newComponent) {
+          // Insert component into the screen's JSX using AST
+          const ast = parseComponent(activeScreenData.content);
+          if (ast) {
+            // Find the return statement in the component
+            let returnStatement: any = null;
+            
+            recast.visit(ast, {
+              visitReturnStatement(path) {
+                returnStatement = path.node;
+                return false;
+              }
+            });
+            
+            if (returnStatement && returnStatement.argument) {
+              // Find the div in the return statement
+              let divElement: any = null;
+              
+              recast.visit(returnStatement, {
+                visitJSXElement(path) {
+                  if (path.node.openingElement.name.name === 'div') {
+                    divElement = path.node;
+                    return false;
+                  }
+                  this.traverse(path);
+                  return undefined;
+                }
+              });
+              
+              if (divElement) {
+                // Create a button JSX element
+                const buttonProps = Object.entries(newComponent.props)
+                  .filter(([key]) => key !== 'children')
+                  .map(([key, value]) => createJSXAttribute(key, value))
+                  .filter(Boolean);
+                
+                const buttonElement = recast.types.builders.jsxElement(
+                  // Opening tag with properties
+                  recast.types.builders.jsxOpeningElement(
+                    recast.types.builders.jsxIdentifier('button'),
+                    buttonProps,
+                    false
+                  ),
+                  // Closing tag
+                  recast.types.builders.jsxClosingElement(
+                    recast.types.builders.jsxIdentifier('button')
+                  ),
+                  // Children (text content)
+                  [recast.types.builders.jsxText(newComponent.props.children || 'Button')]
+                );
+                
+                // Add button to the div's children
+                divElement.children.push(
+                  recast.types.builders.jsxText('\n    '),  // Indentation
+                  buttonElement,
+                  recast.types.builders.jsxText('\n  ')     // Closing indentation
+                );
+                
+                // Update the screen content
+                const updatedContent = recast.print(ast).code;
+                updateScreenContent(activeScreen(), updatedContent);
+              }
+            }
+          }
+        }
       }
     }
     setDraggingItem(null);
@@ -141,6 +282,7 @@ export default function ${name}() {
               onSelectComponent={setSelectedComponent}
               selectedComponent={selectedComponent()}
               addComponent={designerAPI}
+              onUpdateScreenContent={updateScreenContent}
             />
           </div>
           
