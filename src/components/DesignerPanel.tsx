@@ -1,4 +1,4 @@
-import { Component, createSignal, onMount, For, Show } from "solid-js";
+import { Component, createSignal, onMount, For, Show, createEffect, on } from "solid-js";
 import { createDroppable } from "@thisbeyond/solid-dnd";
 import { generateComponentId, extractComponentProps, updateComponentAST } from "../utils/astUtils";
 
@@ -41,6 +41,18 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
     setComponents([]);
   });
 
+  // Effect to update the component when its properties change in the property grid
+  createEffect(on(() => props.selectedComponent, (selectedComponent) => {
+    if (!selectedComponent) return;
+    
+    // Update the component in our local list when its properties change
+    setComponents(prevComponents => 
+      prevComponents.map(comp => 
+        comp.id === selectedComponent.id ? selectedComponent : comp
+      )
+    );
+  }));
+
   // Handle drop from toolbox
   const handleDrop = (dragData: any) => {
     if (!dragData) return;
@@ -72,7 +84,7 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
             <button 
               id={component.props.id}
               class={component.props.class}
-              disabled={component.props.disabled}
+              disabled={component.props.disabled === true}
             >
               {component.props.children}
             </button>

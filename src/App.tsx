@@ -21,7 +21,19 @@ import { parseComponent, updateComponentAST } from './utils/astUtils';
 
 const App: Component = () => {
   const [screens, setScreens] = createStore<{ id: string; name: string; content: string }[]>([
-    { id: '1', name: 'Home', content: 'export default function Home() { return <div>Home Screen</div>; }' }
+    { 
+      id: '1', 
+      name: 'Home', 
+      content: `import { createSignal } from 'solid-js';
+
+export default function Home() {
+  return (
+    <div>
+      <h1>Home Screen</h1>
+    </div>
+  );
+}`
+    }
   ]);
   
   const [activeScreen, setActiveScreen] = createSignal('1');
@@ -36,7 +48,15 @@ const App: Component = () => {
     setScreens([...screens, { 
       id, 
       name, 
-      content: `export default function ${name}() { return <div>${name} Screen</div>; }`
+      content: `import { createSignal } from 'solid-js';
+
+export default function ${name}() {
+  return (
+    <div>
+      <h1>${name} Screen</h1>
+    </div>
+  );
+}`
     }]);
   };
 

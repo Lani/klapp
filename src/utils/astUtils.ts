@@ -1,5 +1,7 @@
 import * as acorn from 'acorn';
+import jsx from 'acorn-jsx';
 import * as recast from 'recast';
+import * as babelParser from '@babel/parser';
 
 /**
  * Parse a component's source code to an AST (Abstract Syntax Tree)
@@ -8,13 +10,14 @@ import * as recast from 'recast';
  */
 export function parseComponent(code: string) {
   try {
+    // Use recast with babel parser that properly handles JSX
     return recast.parse(code, {
       parser: {
         parse(source: string) {
-          return acorn.parse(source, {
+          return babelParser.parse(source, {
             sourceType: 'module',
-            ecmaVersion: 2020,
-            locations: true
+            plugins: ['jsx'],
+            tokens: true
           });
         }
       }
