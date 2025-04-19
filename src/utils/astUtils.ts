@@ -5,7 +5,7 @@ import * as babelParser from '@babel/parser';
 
 /**
  * Parse a component's source code to an AST (Abstract Syntax Tree)
- * 
+ *
  * @param code - The source code to parse
  */
 export function parseComponent(code: string) {
@@ -17,10 +17,10 @@ export function parseComponent(code: string) {
           return babelParser.parse(source, {
             sourceType: 'module',
             plugins: ['jsx'],
-            tokens: true
+            tokens: true,
           });
-        }
-      }
+        },
+      },
     });
   } catch (error) {
     console.error('Failed to parse component code:', error);
@@ -37,11 +37,12 @@ function findElementById(ast: any, id: string): any {
   recast.visit(ast, {
     visitJSXElement(path) {
       const attrs = path.node.openingElement.attributes || [];
-      const idAttr = attrs.find((attr: any) => 
-        attr.type === 'JSXAttribute' && 
-        attr.name.name === 'id' && 
-        attr.value && 
-        attr.value.value === id
+      const idAttr = attrs.find(
+        (attr: any) =>
+          attr.type === 'JSXAttribute' &&
+          attr.name.name === 'id' &&
+          attr.value &&
+          attr.value.value === id,
       );
 
       if (idAttr) {
@@ -51,7 +52,7 @@ function findElementById(ast: any, id: string): any {
 
       this.traverse(path);
       return undefined;
-    }
+    },
   });
 
   return foundNode;
@@ -69,64 +70,71 @@ function createJSXAttribute(name: string, value: any): any {
   // Simple string attribute
   if (typeof value === 'string') {
     // For onClick or other event handlers, use JSX expression container
-    if (name.startsWith('on') && (value.includes('=>') || value.includes('function'))) {
+    if (
+      name.startsWith('on') &&
+      (value.includes('=>') || value.includes('function'))
+    ) {
       return recast.types.builders.jsxAttribute(
         recast.types.builders.jsxIdentifier(name),
         recast.types.builders.jsxExpressionContainer(
-          recast.parse(value).program.body[0].expression
-        )
+          recast.parse(value).program.body[0].expression,
+        ),
       );
     }
     return recast.types.builders.jsxAttribute(
       recast.types.builders.jsxIdentifier(name),
-      recast.types.builders.stringLiteral(value)
+      recast.types.builders.stringLiteral(value),
     );
   }
-  
+
   // Boolean attribute
   if (typeof value === 'boolean') {
     if (value) {
       return recast.types.builders.jsxAttribute(
         recast.types.builders.jsxIdentifier(name),
-        null
+        null,
       );
     }
     // For explicit false values, use {false}
     const jsxValue = recast.types.builders.jsxExpressionContainer(
-      recast.types.builders.booleanLiteral(false)
+      recast.types.builders.booleanLiteral(false),
     );
     return recast.types.builders.jsxAttribute(
       recast.types.builders.jsxIdentifier(name),
-      jsxValue
+      jsxValue,
     );
   }
 
   // Number attribute
   if (typeof value === 'number') {
     const jsxValue = recast.types.builders.jsxExpressionContainer(
-      recast.types.builders.numericLiteral(value)
+      recast.types.builders.numericLiteral(value),
     );
     return recast.types.builders.jsxAttribute(
       recast.types.builders.jsxIdentifier(name),
-      jsxValue
+      jsxValue,
     );
   }
 
   // Object/array attribute
   const jsxValue = recast.types.builders.jsxExpressionContainer(
-    recast.parse('(' + JSON.stringify(value) + ')').program.body[0].expression
+    recast.parse('(' + JSON.stringify(value) + ')').program.body[0].expression,
   );
-  
+
   return recast.types.builders.jsxAttribute(
     recast.types.builders.jsxIdentifier(name),
-    jsxValue
+    jsxValue,
   );
 }
 
 /**
  * Update a component's properties in the AST
  */
-export function updateComponentAST(code: string, componentId: string, props: Record<string, any>): string {
+export function updateComponentAST(
+  code: string,
+  componentId: string,
+  props: Record<string, any>,
+): string {
   try {
     const ast = parseComponent(code);
     if (!ast) return code;
@@ -139,7 +147,7 @@ export function updateComponentAST(code: string, componentId: string, props: Rec
 
     // Get existing attributes that aren't in the props
     const existingAttrs = componentNode.openingElement.attributes || [];
-    
+
     // Remove any duplicate ID attributes, keeping only the first one
     const idAttrSeen = new Set<string>();
     const uniqueExistingAttrs = existingAttrs.filter((attr: any) => {
@@ -150,40 +158,38 @@ export function updateComponentAST(code: string, componentId: string, props: Rec
       }
       return true;
     });
-    
+
     // Filter out attributes we're going to replace
-    const keptAttrs = uniqueExistingAttrs.filter((attr: any) => 
-      attr.type === 'JSXAttribute' && 
-      attr.name.name !== 'id' && 
-      attr.name.name !== 'children' && 
-      !Object.keys(props).includes(attr.name.name)
+    const keptAttrs = uniqueExistingAttrs.filter(
+      (attr: any) =>
+        attr.type === 'JSXAttribute' &&
+        attr.name.name !== 'id' &&
+        attr.name.name !== 'children' &&
+        !Object.keys(props).includes(attr.name.name),
     );
 
     // Create new attributes from props, excluding children
     const newAttrs = Object.entries(props)
       .filter(([name]) => name !== 'children')
       .map(([name, value]) => createJSXAttribute(name, value))
-      .filter(attr => attr !== null);
+      .filter((attr) => attr !== null);
 
     // Ensure ID attribute is always included
-    const idAttr = uniqueExistingAttrs.find((attr: any) => 
-      attr.type === 'JSXAttribute' && 
-      attr.name.name === 'id'
+    const idAttr = uniqueExistingAttrs.find(
+      (attr: any) => attr.type === 'JSXAttribute' && attr.name.name === 'id',
     );
 
     // Update the component's attributes
     componentNode.openingElement.attributes = [
       idAttr,
       ...keptAttrs,
-      ...newAttrs
+      ...newAttrs,
     ];
 
     // Update the children text content if provided
     if (childrenContent && componentNode.children) {
       // Remove all current children
-      componentNode.children = [
-        recast.types.builders.jsxText(childrenContent)
-      ];
+      componentNode.children = [recast.types.builders.jsxText(childrenContent)];
     }
 
     return recast.print(ast).code;
@@ -203,7 +209,10 @@ export function generateComponentId(): string {
 /**
  * Extract component props from AST
  */
-export function extractComponentProps(code: string, componentId: string): Record<string, any> {
+export function extractComponentProps(
+  code: string,
+  componentId: string,
+): Record<string, any> {
   try {
     const ast = parseComponent(code);
     if (!ast) return {};
@@ -223,11 +232,11 @@ export function extractComponentProps(code: string, componentId: string): Record
       // No value (boolean true)
       if (!attr.value) {
         value = true;
-      } 
+      }
       // String literal
       else if (attr.value.type === 'StringLiteral') {
         value = attr.value.value;
-      } 
+      }
       // JSX expression container
       else if (attr.value.type === 'JSXExpressionContainer') {
         if (attr.value.expression.type === 'BooleanLiteral') {
@@ -254,7 +263,7 @@ export function extractComponentProps(code: string, componentId: string): Record
         .map((child: any) => child.value)
         .join('')
         .trim();
-      
+
       if (textContent) {
         props.children = textContent;
       }
@@ -275,43 +284,43 @@ export function parseComponentsFromJSX(code: string): any[] {
   try {
     const ast = parseComponent(code);
     if (!ast) return [];
-    
+
     const components: any[] = [];
-    
+
     // Visit all JSX elements in the code
     recast.visit(ast, {
       visitJSXElement(path) {
         const node = path.node;
         const elementName = node.openingElement.name.name;
-        
+
         // We're only interested in button components for now
         if (elementName === 'button') {
           const props: Record<string, any> = {};
           const attrs = node.openingElement.attributes || [];
-          
+
           // Keep track of seen IDs to avoid duplicates
           const seenIds = new Set<string>();
-          
+
           // Extract all attributes, avoiding duplicate IDs
           attrs.forEach((attr: any) => {
             if (attr.type !== 'JSXAttribute') return;
-            
+
             const name = attr.name.name;
-            
+
             // Skip duplicate ID attributes
             if (name === 'id' && seenIds.has(name)) return;
             if (name === 'id') seenIds.add(name);
-            
+
             let value: any;
-            
+
             // No value (boolean true)
             if (!attr.value) {
               value = true;
-            } 
+            }
             // String literal
             else if (attr.value.type === 'StringLiteral') {
               value = attr.value.value;
-            } 
+            }
             // JSX expression container
             else if (attr.value.type === 'JSXExpressionContainer') {
               if (attr.value.expression.type === 'BooleanLiteral') {
@@ -323,10 +332,10 @@ export function parseComponentsFromJSX(code: string): any[] {
                 value = recast.print(attr.value.expression).code;
               }
             }
-            
+
             props[name] = value;
           });
-          
+
           // Extract the button text (children)
           if (node.children && node.children.length > 0) {
             // Handle text content
@@ -336,20 +345,20 @@ export function parseComponentsFromJSX(code: string): any[] {
               .join('')
               .trim();
           }
-          
+
           // Create component object
           components.push({
             id: props.id || generateComponentId(),
             type: 'Button',
-            props
+            props,
           });
         }
-        
+
         this.traverse(path);
         return undefined;
-      }
+      },
     });
-    
+
     return components;
   } catch (error) {
     console.error('Failed to parse components from JSX:', error);

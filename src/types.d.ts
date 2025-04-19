@@ -14,7 +14,7 @@ declare namespace JSX {
     createDraggable: any;
     createDroppable: any;
   }
-  
+
   interface HTMLAttributes<T> extends DOMAttributes<T> {
     // Allow any custom attribute
     [name: string]: any;
