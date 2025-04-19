@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "firefox",
+      "request": "launch",
+      "name": "Launch Firefox",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}",
+      "pathMappings": [
+        {
+          "url": "webpack:///src/",
+          "path": "${workspaceFolder}/src/"
+        }
+      ],
+      "reAttach": true,
+      "skipFiles": [
+        "${workspaceFolder}/node_modules/**/*.js"
+      ],
+      "log": {
+        "level": "warn"
+      }
+    }
+  ]
+}
