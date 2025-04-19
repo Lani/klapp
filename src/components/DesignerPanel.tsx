@@ -1,7 +1,21 @@
-import { Component, createSignal, onMount, For, Show, createEffect, on, createMemo } from "solid-js";
-import { createDroppable } from "@thisbeyond/solid-dnd";
-import { generateComponentId, extractComponentProps, updateComponentAST, parseComponentsFromJSX } from "../utils/astUtils";
-import MonacoEditor from "./MonacoEditor";
+import {
+  Component,
+  createSignal,
+  onMount,
+  For,
+  Show,
+  createEffect,
+  on,
+  createMemo,
+} from 'solid-js';
+import { createDroppable } from '@thisbeyond/solid-dnd';
+import {
+  generateComponentId,
+  extractComponentProps,
+  updateComponentAST,
+  parseComponentsFromJSX,
+} from '../utils/astUtils';
+import MonacoEditor from './MonacoEditor';
 import * as monaco from 'monaco-editor';
 
 // Define change sources to prevent feedback loops
@@ -20,12 +34,14 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
   const [components, setComponents] = createSignal<any[]>([]);
   const [activeTab, setActiveTab] = createSignal<'design' | 'code'>('design');
   const [codeValue, setCodeValue] = createSignal<string>('');
-  const [editorInstance, setEditorInstance] = createSignal<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [editorInstance, setEditorInstance] =
+    createSignal<monaco.editor.IStandaloneCodeEditor | null>(null);
   // Track the source of the last change to prevent feedback loops
   const [changeSource, setChangeSource] = createSignal<ChangeSource>('initial');
-  
+
   // Find the active screen
-  const activeScreen = () => props.screens.find(screen => screen.id === props.activeScreenId);
+  const activeScreen = () =>
+    props.screens.find((screen) => screen.id === props.activeScreenId);
 
   // Create a memo to track the active screen's content
   const activeScreenContent = createMemo(() => {
@@ -37,10 +53,10 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
   createEffect(() => {
     const screenId = props.activeScreenId; // Dependency to track screen changes
     const content = activeScreenContent();
-    
+
     if (content) {
       setCodeValue(content);
-      
+
       // Update the editor directly if it exists and the code tab is active
       // But only if the change didn't originate from the code editor itself
       const editor = editorInstance();
@@ -56,7 +72,7 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
           }
         }
       }
-      
+
       // Only update components if change didn't come from the designer
       if (source !== 'designer') {
         // Parse components from the screen content
@@ -64,7 +80,7 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
           const extractedComponents = parseComponentsFromJSX(content);
           setComponents(extractedComponents);
         } catch (error) {
-          console.error("Error parsing components:", error);
+          console.error('Error parsing components:', error);
         }
       }
     }
@@ -87,13 +103,13 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
   // Method to add a component to the canvas
   const addComponent = (componentData: any) => {
     if (!componentData) return;
-    
+
     const newComponent = {
       id: componentData.props.id || generateComponentId(),
       type: componentData.type,
-      props: componentData.props
+      props: componentData.props,
     };
-    
+
     setChangeSource('designer');
     setComponents([...components(), newComponent]);
     props.onSelectComponent(newComponent);
@@ -123,38 +139,43 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
   });
 
   // Effect to update the component when its properties change in the property grid
-  createEffect(on(() => props.selectedComponent, (selectedComponent) => {
-    if (!selectedComponent) return;
-    
-    // Skip updating components if the change came from the code editor
-    // This prevents feedback loops
-    if (changeSource() === 'code') return;
-    
-    // Update the component in our local list when its properties change
-    setChangeSource('property-grid');
-    setComponents(prevComponents => 
-      prevComponents.map(comp => 
-        comp.id === selectedComponent.id ? selectedComponent : comp
-      )
-    );
-    
-    // If the code view is active, update it immediately when properties change
-    if (activeScreen() && activeTab() === 'code') {
-      // We're setting code value even if design tab is active to maintain sync
-      setCodeValue(activeScreen()!.content);
-    }
-  }));
+  createEffect(
+    on(
+      () => props.selectedComponent,
+      (selectedComponent) => {
+        if (!selectedComponent) return;
+
+        // Skip updating components if the change came from the code editor
+        // This prevents feedback loops
+        if (changeSource() === 'code') return;
+
+        // Update the component in our local list when its properties change
+        setChangeSource('property-grid');
+        setComponents((prevComponents) =>
+          prevComponents.map((comp) =>
+            comp.id === selectedComponent.id ? selectedComponent : comp,
+          ),
+        );
+
+        // If the code view is active, update it immediately when properties change
+        if (activeScreen() && activeTab() === 'code') {
+          // We're setting code value even if design tab is active to maintain sync
+          setCodeValue(activeScreen()!.content);
+        }
+      },
+    ),
+  );
 
   // Handle drop from toolbox
   const handleDrop = (dragData: any) => {
     if (!dragData) return;
-    
+
     const newComponent = {
       id: dragData.props.id || generateComponentId(),
       type: dragData.type,
-      props: dragData.props
+      props: dragData.props,
     };
-    
+
     setChangeSource('designer');
     setComponents([...components(), newComponent]);
     props.onSelectComponent(newComponent);
@@ -164,26 +185,28 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
   const handleCodeChange = (newValue: string) => {
     setCodeValue(newValue);
     setChangeSource('code');
-    
+
     // Parse the code for components and update the designer
     try {
       const extractedComponents = parseComponentsFromJSX(newValue);
       setComponents(extractedComponents);
-      
+
       // If a component is currently selected, update its properties from the code
       const selectedComp = props.selectedComponent;
       if (selectedComp) {
         // Find the same component in the newly extracted components
-        const updatedComponent = extractedComponents.find(comp => comp.id === selectedComp.id);
+        const updatedComponent = extractedComponents.find(
+          (comp) => comp.id === selectedComp.id,
+        );
         if (updatedComponent) {
           // Update the selected component with the new properties from code
           props.onSelectComponent(updatedComponent);
         }
       }
     } catch (error) {
-      console.error("Error parsing components from code:", error);
+      console.error('Error parsing components from code:', error);
     }
-    
+
     // Update the screen content in the parent component
     const screen = activeScreen();
     if (screen && props.onUpdateScreenContent) {
@@ -193,19 +216,20 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
 
   // Render a component based on its type
   const renderComponent = (component: any) => {
-    const isSelected = props.selectedComponent && props.selectedComponent.id === component.id;
-    
+    const isSelected =
+      props.selectedComponent && props.selectedComponent.id === component.id;
+
     switch (component.type) {
-      case "Button":
+      case 'Button':
         return (
-          <div 
+          <div
             class={`component-item ${isSelected ? 'selected' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
               props.onSelectComponent(component);
             }}
           >
-            <button 
+            <button
               id={component.props.id}
               class={component.props.class}
               disabled={component.props.disabled === true}
@@ -214,10 +238,10 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
             </button>
           </div>
         );
-      
+
       default:
         return (
-          <div 
+          <div
             class={`component-item ${isSelected ? 'selected' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
@@ -230,22 +254,22 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
     }
   };
 
-  const droppable = createDroppable("canvas", {
+  const droppable = createDroppable('canvas', {
     // Only accept the components from our toolbox
-    accept: ["toolbox-Button"],
+    accept: ['toolbox-Button'],
   });
 
   return (
     <div class="designer-container">
       {/* Tab navigation */}
       <div class="designer-tabs">
-        <button 
+        <button
           class={`tab-button ${activeTab() === 'design' ? 'active' : ''}`}
           onClick={() => setActiveTab('design')}
         >
           Design
         </button>
-        <button 
+        <button
           class={`tab-button ${activeTab() === 'code' ? 'active' : ''}`}
           onClick={() => setActiveTab('code')}
         >
@@ -255,17 +279,19 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
 
       {/* Design view */}
       <Show when={activeTab() === 'design'}>
-        <div 
+        <div
           class="designer-canvas"
           use:droppable
           onClick={() => props.onSelectComponent(null)}
         >
           <Show when={components().length === 0}>
-            <div style={{ "text-align": "center", "padding": "50px", "color": "#999" }}>
+            <div
+              style={{ 'text-align': 'center', padding: '50px', color: '#999' }}
+            >
               Drag components from the toolbox to build your UI
             </div>
           </Show>
-          
+
           <For each={components()}>
             {(component) => renderComponent(component)}
           </For>
@@ -275,17 +301,17 @@ export const DesignerPanel: Component<DesignerPanelProps> = (props) => {
       {/* Code view */}
       <Show when={activeTab() === 'code'}>
         <div class="code-editor-container">
-          <MonacoEditor 
-            value={codeValue()} 
+          <MonacoEditor
+            value={codeValue()}
             onChange={handleCodeChange}
             language="javascript"
             editorRef={handleEditorRef}
-            options={{ 
+            options={{
               readOnly: false,
               lineNumbers: 'on',
               roundedSelection: true,
               scrollBeyondLastLine: false,
-              theme: 'vs'
+              theme: 'vs',
             }}
           />
         </div>

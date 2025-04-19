@@ -9,9 +9,12 @@ import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 
 export default defineConfig([
   {
+    ignores: ['**/node_modules/**', '**/dist/**'],
+  },
+  {
     files: ['**/*.{js,mjs,cjs,ts}'],
     plugins: { js },
-    extends: ['js/recommended', eslintPluginPrettierRecommended],
+    extends: ['js/recommended'],
   },
   {
     files: ['**/*.{js,mjs,cjs,ts}'],
@@ -19,33 +22,22 @@ export default defineConfig([
   },
   tseslint.configs.recommended,
   {
-    files: ['**/*.json'],
+    files: ['**/*.json', '**/*.jsonc', '**/*.json5'],
     plugins: { json },
     language: 'json/json',
-    extends: ['json/recommended', eslintPluginPrettierRecommended],
-  },
-  {
-    files: ['**/*.jsonc'],
-    plugins: { json },
-    language: 'json/jsonc',
-    extends: ['json/recommended', eslintPluginPrettierRecommended],
-  },
-  {
-    files: ['**/*.json5'],
-    plugins: { json },
-    language: 'json/json5',
-    extends: ['json/recommended', eslintPluginPrettierRecommended],
+    extends: ['json/recommended'],
   },
   {
     files: ['**/*.md'],
     plugins: { markdown },
     language: 'markdown/gfm',
-    extends: ['markdown/recommended', eslintPluginPrettierRecommended],
+    extends: ['markdown/recommended'],
   },
   {
     files: ['**/*.css'],
     plugins: { css },
     language: 'css/css',
-    extends: ['css/recommended', eslintPluginPrettierRecommended],
+    extends: ['css/recommended'],
   },
+  eslintPluginPrettierRecommended,
 ]);

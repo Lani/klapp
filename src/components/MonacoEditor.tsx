@@ -1,5 +1,5 @@
-import { Component, onMount, onCleanup, createEffect } from "solid-js";
-import * as monaco from "monaco-editor";
+import { Component, onMount, onCleanup, createEffect } from 'solid-js';
+import * as monaco from 'monaco-editor';
 
 // Configure Monaco global environment to handle web workers
 if (window) {
@@ -30,7 +30,7 @@ if (window) {
       `;
       const blob = new Blob([workerCode], { type: 'application/javascript' });
       return new Worker(URL.createObjectURL(blob));
-    }
+    },
   };
 }
 
@@ -46,32 +46,32 @@ interface MonacoEditorProps {
 export const MonacoEditor: Component<MonacoEditorProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let editor: monaco.editor.IStandaloneCodeEditor | undefined;
-  
+
   onMount(() => {
     if (!containerRef) return;
-    
+
     // Create Monaco editor
     editor = monaco.editor.create(containerRef, {
-      value: props.value || "",
-      language: props.language || "javascript",
-      theme: props.theme || "vs",
+      value: props.value || '',
+      language: props.language || 'javascript',
+      theme: props.theme || 'vs',
       automaticLayout: true,
       minimap: { enabled: true },
       scrollBeyondLastLine: false,
-      ...props.options
+      ...props.options,
     });
-    
+
     // Set up model change listener
     const changeModelDisposable = editor.onDidChangeModelContent(() => {
-      const value = editor?.getValue() || "";
+      const value = editor?.getValue() || '';
       props.onChange?.(value);
     });
-    
+
     // Pass editor instance back via ref if provided
     if (props.editorRef && editor) {
       props.editorRef(editor);
     }
-    
+
     // Update editor content when value prop changes
     let prevValue = props.value;
     createEffect(() => {
@@ -81,23 +81,23 @@ export const MonacoEditor: Component<MonacoEditorProps> = (props) => {
       }
       prevValue = newValue;
     });
-    
+
     onCleanup(() => {
       // Clean up editor resources
       changeModelDisposable.dispose();
       editor?.dispose();
     });
   });
-  
+
   return (
-    <div 
-      ref={containerRef} 
-      style={{ 
-        "width": "100%", 
-        "height": "100%",
-        "min-height": "500px",
-        "border": "1px solid #ddd"
-      }} 
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%',
+        height: '100%',
+        'min-height': '500px',
+        border: '1px solid #ddd',
+      }}
     />
   );
 };
